@@ -8,26 +8,26 @@ public class Main {
     public final static String FILE_SEPARATOR = System.getProperty("file.separator");
 
     public static void main(String[] args) throws IOException {
-        String source = "", songlist = "", destination = "";
+        String source = "", destination = "", originalSongs = "";
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-src")) {
                 source = args[++i];
                 continue;
             }
-            if (args[i].equals("-slst")) {
-                songlist = args[++i];
-            }
             if (args[i].equals("-des")) {
                 destination = args[++i];
             }
+            if (args[i].equals("--original-songs")) {
+                originalSongs = args[++i];
+            }
         }
-        File fSource = new File(source), fSonglist = new File(songlist), fDest = new File(destination);
+        File fSource = new File(source), fDest = new File(destination), fOriginalSongs = new File(originalSongs);
         if (!fSource.exists() || !fSource.isDirectory()) {
             System.out.println("错误：未检测到谱面源文件夹，系统将自动退出");
             return;
         }
-        if (!fSonglist.exists() || !fSonglist.isFile()) {
-            System.out.println("错误：未检测到songlist文件，系统将自动退出");
+        if (!fOriginalSongs.exists() || !fOriginalSongs.isDirectory()) {
+            System.out.println("错误：未检测到songs文件夹，系统将自动退出");
             return;
         }
         if (!fDest.exists() || !fDest.isDirectory()) {
@@ -39,17 +39,20 @@ public class Main {
                 return;
             }
         }
-        readFiles(source, songlist, destination);
+        readFiles(source, destination, originalSongs);
     }
 
-    private static void readFiles(String source, String songlist, String destination) throws IOException {
+    private static void readFiles(String source, String destination, String originalSongs) throws IOException {
         if (!source.endsWith(FILE_SEPARATOR)) {
             source += FILE_SEPARATOR;
         }
         if (!destination.endsWith(FILE_SEPARATOR)) {
             destination += FILE_SEPARATOR;
         }
-        JsonArray songs = fileToJsonObject(songlist).get("songs").getAsJsonArray();
+        if (!originalSongs.endsWith(FILE_SEPARATOR)) {
+            originalSongs += FILE_SEPARATOR;
+        }
+        JsonArray songs = fileToJsonObject(originalSongs + "songlist").get("songs").getAsJsonArray();
         for (JsonElement element : songs) {
             JsonObject song = element.getAsJsonObject();
             String sid = song.get("id").getAsString();
@@ -70,8 +73,13 @@ public class Main {
                             System.out.println(song.get("set").getAsString() + "曲包的" + sid + "的主体（base.ogg，0.aff ~ 2.aff）不存在，将被忽略");
                     }
                 }
+                copyFile(originalSongs + "dl_" + sid + FILE_SEPARATOR + "base.jpg", destination + sid + FILE_SEPARATOR + "base.jpg");
+                copyFile(originalSongs + "dl_" + sid + FILE_SEPARATOR + "base_256.jpg", destination + sid + FILE_SEPARATOR + "base_256.jpg");
+                copyFile(originalSongs + "dl_" + sid + FILE_SEPARATOR + "preview.ogg", destination + sid + FILE_SEPARATOR + "preview.ogg");
             }
             JsonArray difficulties = song.get("difficulties").getAsJsonArray();
+            boolean remoteDownload = song.has("remote_dl") && song.get("remote_dl").getAsBoolean();
+            String jdfksjfdlk = remoteDownload ? "_dl" : "";
             for (JsonElement jsonElement : difficulties) {
                 JsonObject difficulty = jsonElement.getAsJsonObject();
                 if (difficulty.has("audioOverride") && difficulty.get("audioOverride").getAsBoolean()) {
@@ -83,13 +91,32 @@ public class Main {
                             System.out.println(sid + "的" + getRatingByRatingClass(ratingClass) + "难度的音乐不存在，将被忽略");
                     }
                 }
+                if (difficulty.has("jacketOverride") && difficulty.get("audioOverride").getAsBoolean()) {
+                    int ratingClass = difficulty.get("ratingClass").getAsInt();
+                    copyFile(originalSongs + jdfksjfdlk + sid + FILE_SEPARATOR + ratingClass + ".jpg", destination + sid + FILE_SEPARATOR + ratingClass + ".jpg");
+                    copyFile(originalSongs + jdfksjfdlk + sid + FILE_SEPARATOR + ratingClass + "_256.jpg", destination + sid + FILE_SEPARATOR + ratingClass + "_256.jpg");
+                }
+                if (difficulty.has("jacket_night")) {
+                    String nightJacket = difficulty.get("jacket_night").getAsString();
+                    copyFile(originalSongs + jdfksjfdlk + sid + FILE_SEPARATOR + nightJacket + ".jpg", destination + sid + FILE_SEPARATOR + nightJacket + ".jpg");
+                    copyFile(originalSongs + jdfksjfdlk + sid + FILE_SEPARATOR + nightJacket + "_256.jpg", destination + sid + FILE_SEPARATOR + nightJacket + "_256.jpg");
+                }
             }
             if (difficulties.size() > 3) {
                 if (new File(source + sid + "_3").exists()) {
                     copyFile(source + sid + "_3", destination + sid + FILE_SEPARATOR + "3.aff");
+                    copyFile(originalSongs + sid + FILE_SEPARATOR + "3_preview.ogg", destination + sid + FILE_SEPARATOR + "3_preview.ogg");
                 } else {
                     if (!new File(destination + sid + FILE_SEPARATOR + "3.aff").exists())
                         System.out.println(sid + "的byd难度不存在，将被忽略");
+                }
+                if (!remoteDownload) {
+                    copyFile(originalSongs + sid + FILE_SEPARATOR + "base.jpg", destination + sid + FILE_SEPARATOR + "base.jpg");
+                    copyFile(originalSongs + sid + FILE_SEPARATOR + "base_256.jpg", destination + sid + FILE_SEPARATOR + "base_256.jpg");
+                    copyFile(originalSongs + sid + FILE_SEPARATOR + "base.ogg", destination + sid + FILE_SEPARATOR + "base.ogg");
+                    copyFile(originalSongs + sid + FILE_SEPARATOR + "0.aff", destination + sid + FILE_SEPARATOR + "0.aff");
+                    copyFile(originalSongs + sid + FILE_SEPARATOR + "1.aff", destination + sid + FILE_SEPARATOR + "1.aff");
+                    copyFile(originalSongs + sid + FILE_SEPARATOR + "2.aff", destination + sid + FILE_SEPARATOR + "2.aff");
                 }
             }
         }
@@ -106,6 +133,7 @@ public class Main {
     private static void copyFile(String src, String des) {
         File source = new File(src);
         File destination = new File(des);
+        if (!source.exists()) return;
         if (destination.exists()) {
             destination.delete();
         }
