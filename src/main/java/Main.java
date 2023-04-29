@@ -16,9 +16,11 @@ public class Main {
             }
             if (args[i].equals("-des")) {
                 destination = args[++i];
+                continue;
             }
             if (args[i].equals("--original-songs")) {
                 originalSongs = args[++i];
+                continue;
             }
         }
         File fSource = new File(source), fDest = new File(destination), fOriginalSongs = new File(originalSongs);
@@ -91,7 +93,7 @@ public class Main {
                             System.out.println(sid + "的" + getRatingByRatingClass(ratingClass) + "难度的音乐不存在，将被忽略");
                     }
                 }
-                if (difficulty.has("jacketOverride") && difficulty.get("audioOverride").getAsBoolean()) {
+                if (difficulty.has("jacketOverride") && difficulty.get("jacketOverride").getAsBoolean()) {
                     int ratingClass = difficulty.get("ratingClass").getAsInt();
                     copyFile(originalSongs + jdfksjfdlk + sid + FILE_SEPARATOR + ratingClass + ".jpg", destination + sid + FILE_SEPARATOR + ratingClass + ".jpg");
                     copyFile(originalSongs + jdfksjfdlk + sid + FILE_SEPARATOR + ratingClass + "_256.jpg", destination + sid + FILE_SEPARATOR + ratingClass + "_256.jpg");
@@ -105,11 +107,11 @@ public class Main {
             if (difficulties.size() > 3) {
                 if (new File(source + sid + "_3").exists()) {
                     copyFile(source + sid + "_3", destination + sid + FILE_SEPARATOR + "3.aff");
-                    copyFile(originalSongs + sid + FILE_SEPARATOR + "3_preview.ogg", destination + sid + FILE_SEPARATOR + "3_preview.ogg");
                 } else {
                     if (!new File(destination + sid + FILE_SEPARATOR + "3.aff").exists())
                         System.out.println(sid + "的byd难度不存在，将被忽略");
                 }
+                copyFile(originalSongs + sid + FILE_SEPARATOR + "3_preview.ogg", destination + sid + FILE_SEPARATOR + "3_preview.ogg");
                 if (!remoteDownload) {
                     copyFile(originalSongs + sid + FILE_SEPARATOR + "base.jpg", destination + sid + FILE_SEPARATOR + "base.jpg");
                     copyFile(originalSongs + sid + FILE_SEPARATOR + "base_256.jpg", destination + sid + FILE_SEPARATOR + "base_256.jpg");
